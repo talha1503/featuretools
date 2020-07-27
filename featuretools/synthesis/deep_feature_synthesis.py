@@ -792,7 +792,7 @@ class DeepFeatureSynthesis(object):
             matching_inputs = {inputs for inputs in matching_inputs
                                if not _all_direct_and_same_path(inputs)}
         matching_inputs = filter_matches_by_options(matching_inputs, primitive_options)
-        return matching_inputs
+        return sorted(list(matching_inputs), key=lambda features: ([feature.get_name() for feature in features]))
 
 
 def check_stacking(primitive, inputs):

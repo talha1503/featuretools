@@ -3,6 +3,7 @@ import copy
 import dask.dataframe as dd
 import pandas as pd
 import pytest
+import random
 
 import featuretools as ft
 from featuretools.feature_base import (
@@ -39,7 +40,7 @@ from featuretools.primitives import (
     Year
 )
 from featuretools.synthesis import DeepFeatureSynthesis
-from featuretools.tests.testing_utils import feature_with_name
+from featuretools.tests.testing_utils import feature_with_name, make_ecommerce_entityset
 from featuretools.variable_types import Datetime, Numeric
 
 
@@ -1368,3 +1369,44 @@ def test_primitive_options_instantiated_primitive(es):
             assert all(entity == 'stores' for entity in entities)
         elif isinstance(f.primitive, Mean):
             assert 'stores' not in entities
+
+
+def test_primitive_ordering():
+    es = make_ecommerce_entityset()
+    all_primitives = ft.list_primitives()
+    trans_prim = all_primitives[all_primitives['type'] == 'transform']['name'].to_list()
+
+    trans_prim.sort()
+    prims = trans_prim[:15]
+
+    features_sorted = ft.dfs(entityset=es,
+                             target_entity="customers",
+                             trans_primitives=prims,
+                             max_features=-1,
+                             max_depth=2,
+                             features_only=2)
+
+    random.shuffle(prims)
+    features_random1 = ft.dfs(entityset=es,
+                              target_entity="customers",
+                              trans_primitives=prims,
+                              max_features=-1,
+                              max_depth=2,
+                              features_only=2)
+    diff_1 = set(features_sorted) - set(features_random1)
+
+    random.shuffle(prims)
+    features_random2 = ft.dfs(entityset=es,
+                              target_entity="customers",
+                              trans_primitives=prims,
+                              max_features=-1,
+                              max_depth=2,
+                              features_only=2)
+    diff_2 = set(features_sorted) - set(features_random2)
+
+    assert len(features_sorted) == len(features_random1)
+    assert len(features_sorted) == len(features_random2)
+
+    # It's possible that they have the same number of features but still different ones
+    assert len(diff_1) == 0
+    assert len(diff_2) == 0
